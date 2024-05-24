@@ -12,7 +12,7 @@ public class ChatGPTService {
     private final String chatGPTApiKey = System.getenv("OPEN_AI_API_KEY");
     public String postPrompt(String prompt) {
         ChatGPTResponse response = requireNonNull(
-                WebClient.create()
+                WebClient.create()   // Creates a Webclient with default Connector, default Cookies
                         .post()
                         .uri("https://api.openai.com/v1/chat/completions")
                         .header("Authorization", "Bearer " + chatGPTApiKey)
