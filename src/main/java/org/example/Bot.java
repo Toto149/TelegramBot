@@ -26,6 +26,8 @@ public class Bot extends TelegramLongPollingBot {
             quit(messageReceived);
             if(hasAnsweredCorrect(messageReceived)) {
                 question = quiz.getRandomQuestion();
+                sendResponse(chatId, "Correct!");
+                sendResponse(chatId,question.toString());
                 return;
             }
             else{
@@ -41,10 +43,12 @@ public class Bot extends TelegramLongPollingBot {
         // start to evaluate the messages you received
         // 1. Welcoming text that explains the features in a chat message
         // after a text that starts with hello was send
-        if (state.equals(State.DEFAULT) && messageReceived.toLowerCase().startsWith("hello")) {
+        if (state.equals(State.DEFAULT) && (messageReceived.toLowerCase().startsWith("hello")
+                                        || messageReceived.toLowerCase().startsWith("/start"))) {
             helloResponse(chatId);
             return;
         }
+
         if(state.equals(State.DEFAULT) && messageReceived.toLowerCase().startsWith("quiz")){
             quizStarter(chatId);
             return;
@@ -59,18 +63,17 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private boolean hasAnsweredCorrect(String messageReceived) {
-        return messageReceived.toLowerCase().startsWith(question.getSolution());
+    boolean hasAnsweredCorrect(String messageReceived) {
+        return messageReceived.toLowerCase().startsWith(question.getSolution().toLowerCase());
     }
 
 
-    private void quizStarter(long chatId){
+    void quizStarter(long chatId){
         state = State.QUIZ;
         sendResponse(chatId, question.toString());
-
-
     }
-    private void helloResponse(long chatId){
+
+    void helloResponse(long chatId){
         sendResponse(chatId, "Welcome to the ChatGPT telegramm integration");
         sendResponse(chatId, "Feel free to ask ChatGPT anything");
         sendResponse(chatId, """
@@ -85,10 +88,16 @@ public class Bot extends TelegramLongPollingBot {
                    """ );
     }
 
-    private void chatGPTResponse(long chatId, String messageReceived){
+    void chatGPTResponse(long chatId, String messageReceived){
+        if(messageReceived == null) return;
         quit(messageReceived);
         ChatGPTService service = new ChatGPTService();
         sendResponse(chatId,service.postPrompt(messageReceived));
+    }
+    void quit(String messageReceived){
+        if(messageReceived == null) return;
+        if(!messageReceived.toLowerCase().startsWith("quit")) return;
+        this.state = State.DEFAULT;
     }
 
     private void sendResponse(long chatId, String s) {
@@ -102,10 +111,20 @@ public class Bot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+    State getState(){
+        return this.state;
+    }
 
-    private void quit(String messageReceived){
-        if(!messageReceived.toLowerCase().startsWith("quit")) return;
-        this.state = State.DEFAULT;
+    Quiz getQuiz(){
+        return this.quiz;
+    }
+
+    Question getQuestion(){
+        return this.question;
+    }
+
+    void setState(State state){
+        this.state = state;
     }
 
     @Override
