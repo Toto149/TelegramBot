@@ -6,32 +6,53 @@ import org.example.quiz.Quiz;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class Bot extends TelegramLongPollingBot {
+
     private State state = State.DEFAULT;
     private Quiz quiz = new Quiz();
     private Question question = quiz.getRandomQuestion();
+    private InlineKeyboardButton button = new InlineKeyboardButton("button");
+
+
+
     @Override
     public void onUpdateReceived(Update update) {
-        long chatId = update.getMessage().getChatId();
-        String messageReceived = update.getMessage().getText();
-        System.out.println(messageReceived);
+        long chatId = 0;
+        String answerToQuestion = "";
+        String messageReceived = "";
+        if(update.hasCallbackQuery()){
+            chatId = update.getCallbackQuery().getMessage().getChatId();
+            answerToQuestion = update.getCallbackQuery().getData();
+        }
+
+        if(update.hasMessage() && update.getMessage().hasText()) {
+            chatId = update.getMessage().getChatId();
+            messageReceived = update.getMessage().getText();
+        }
 
 
 
         if(state.equals(State.QUIZ)){
             quit(messageReceived);
-            if(hasAnsweredCorrect(messageReceived)) {
+            if(hasAnsweredCorrect(answerToQuestion)) {
                 question = quiz.getRandomQuestion();
                 sendResponse(chatId, "Correct!");
                 sendResponse(chatId,question.toString());
+                sendInlineQuizMenu(chatId);
                 return;
             }
             else{
-                sendResponse(chatId,"Not correct unfortunately. Please try again or quit by sending a message that starts with quit");
+                sendResponse(chatId,"Not correct unfortunately. Please try again or if you dont want to play anymore " +
+                        "quit by sending a message that starts with quit");
                 return;
             }
 
@@ -40,12 +61,13 @@ public class Bot extends TelegramLongPollingBot {
             chatGPTResponse(chatId, messageReceived);
             return;
         }
-        // start to evaluate the messages you received
+        // Start to evaluate the messages you received
         // 1. Welcoming text that explains the features in a chat message
-        // after a text that starts with hello was send
+        // after a text that starts with hello got send
         if (state.equals(State.DEFAULT) && (messageReceived.toLowerCase().startsWith("hello")
                                         || messageReceived.toLowerCase().startsWith("/start"))) {
             helloResponse(chatId);
+            sendResponse(chatId,button.getText());
             return;
         }
 
@@ -57,28 +79,30 @@ public class Bot extends TelegramLongPollingBot {
             state = State.CHAT_GPT;
             sendResponse(chatId,"You are now in chatgpt mode");
         }
-        else //If nothing of the above is done, this will be send.
+        else //If nothing of the above is done, this will get send.
         {
             sendResponse(chatId,"");
         }
     }
 
-    boolean hasAnsweredCorrect(String messageReceived) {
-        return messageReceived.toLowerCase().startsWith(question.getSolution().toLowerCase());
+    ////
+
+
+    boolean hasAnsweredCorrect(String answer) {
+        return answer.equals(question.getSolution());
     }
 
 
     void quizStarter(long chatId){
         state = State.QUIZ;
         sendResponse(chatId, question.toString());
+        sendInlineQuizMenu(chatId);
     }
 
     void helloResponse(long chatId){
-        sendResponse(chatId, "Welcome to the ChatGPT telegramm integration");
-        sendResponse(chatId, "Feel free to ask ChatGPT anything");
         sendResponse(chatId, """
                     0. You are currently in default mode, apart from messages that start with hello,
-                        only the mentioned keyword in the other bulletpoints will have an effect on the bot.
+                        only the mentioned keyword in the other bullet-points will have an effect on the bot.
                     1. Type a message starting with 'chatgpt' to get into the chatgpt mode,
                         every following inputs will be send to chatgpt.
                     2. If you send a message starting with 'quiz' you will get into the quiz-mode and
@@ -111,6 +135,49 @@ public class Bot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+    private void sendInlineQuizMenu(long chatId){
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Choose an answer: ");
+
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        List<InlineKeyboardButton> rowInline = new ArrayList<>();
+        List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
+
+        InlineKeyboardButton btn1 = new InlineKeyboardButton();
+        btn1.setText(" A ");
+        btn1.setCallbackData(question.getOptions().getFirst());
+        rowInline.add(btn1);
+
+        InlineKeyboardButton btn2 = new InlineKeyboardButton();
+        btn2.setText(" B ");
+        btn2.setCallbackData(question.getOptions().get(1));
+        rowInline.add(btn2);
+
+        InlineKeyboardButton btn3 = new InlineKeyboardButton();
+        btn3.setText(" C ");
+        btn3.setCallbackData(question.getOptions().get(2));
+        rowInline2.add(btn3);
+
+        InlineKeyboardButton btn4 = new InlineKeyboardButton();
+        btn4.setText(" D ");
+        btn4.setCallbackData(question.getOptions().get(3));
+        rowInline2.add(btn4);
+
+        rowsInline.add(rowInline);
+        rowsInline.add(rowInline2);
+        markupInline.setKeyboard(rowsInline);
+        message.setReplyMarkup(markupInline);
+
+        try{
+            execute(message);
+        }catch (TelegramApiException e){
+            e.printStackTrace();
+        }
+    }
+    //Methods mainly for test-purposes, that's why the visibility is default.
+
     State getState(){
         return this.state;
     }
