@@ -40,7 +40,7 @@ public class Bot extends TelegramLongPollingBot {
         boolean isTextMessage = update.hasMessage() && update.getMessage().hasText();
 
         boolean isAnswerToQuiz = update.hasCallbackQuery() && state.equals(State.QUIZ);
-        
+
         if(hasChosenMenuOptions){
 
             chatId = update.getCallbackQuery().getMessage().getChatId();
@@ -65,9 +65,11 @@ public class Bot extends TelegramLongPollingBot {
 
         boolean isCallForChatGpt = messageReceived.toLowerCase().startsWith("chatgpt") || startUpMessage.equals("chat-gpt");
 
+
+
+        quit(messageReceived);
         if(state.equals(State.QUIZ)){
 
-            quit(messageReceived);
 
             if(hasAnsweredCorrect(answerToQuestion)) {
 
