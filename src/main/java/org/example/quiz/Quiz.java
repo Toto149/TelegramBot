@@ -1,32 +1,47 @@
 package org.example.quiz;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class Quiz {
-    private List<Question> questionsList = this.initQuestions();
-    //private int score = 0
+    private final QuizApiService service = new QuizApiService();
+    private List<Question> questionsList = new ArrayList<>();
+    private int score = 0;
     private final Random r = new Random();
 
-
-    private List<Question> initQuestions() {
-        return List.of(
-                new Question("Japan", "What is the name of the popular Japanese dish made from fermented soybeans?",
-                        List.of("Sushi", "Ramen", "Miso", "Tempura"), "Miso"),
-                new Question("Shakespeare", "In which famous Shakespearean play does the character Othello appear?",
-                        List.of("Macbeth", "Romeo and Juliet", "Othello", "Hamlet"), "Othello"),
-                new Question("Human Body", "What is the largest organ in the human body?",
-                        List.of("Brain", "Liver", "Heart", "Skin"), "Skin"),
-                new Question("Paintings", "Who painted the famous artwork \"Mona Lisa\"?",
-                        List.of("Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"), "Leonardo da Vinci"));
+    public Quiz(){
+        initQuestions();
     }
 
-    public boolean addQuestion(Question q) {
-        return this.questionsList.add(q);
+    private void initQuestions() {
+        questionsList.addAll(service.getQuestions(5,Difficulty.EASY));
     }
+
 
     public Question getRandomQuestion() {
+        if(questionsList.isEmpty()){
+            if(score==5){
+                questionsList.addAll(service.getQuestions(5,Difficulty.MEDIUM));
+            }
+            if(score==10){
+                questionsList.addAll(service.getQuestions(5,Difficulty.HARD));
+            }
+            if(score>11){
+                questionsList.addAll(service.getQuestions(10,Difficulty.HARD));
+            }
+        }
         int index = r.nextInt(0, this.questionsList.size());
-        return this.questionsList.get(index);
+        Question question = this.questionsList.get(index);
+        this.questionsList.remove(index);
+        return question;
+    }
+
+    public void increaseScore(){
+        score++;
+    }
+
+    public int getScore(){
+        return score;
     }
 }
