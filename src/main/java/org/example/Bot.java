@@ -26,24 +26,30 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+
         long chatId = 0;
         String answerToQuestion = "";
         String messageReceived = "";
+
         if(update.hasCallbackQuery()){
+
             chatId = update.getCallbackQuery().getMessage().getChatId();
             answerToQuestion = update.getCallbackQuery().getData();
         }
 
         if(update.hasMessage() && update.getMessage().hasText()) {
+
             chatId = update.getMessage().getChatId();
             messageReceived = update.getMessage().getText();
         }
 
 
-
         if(state.equals(State.QUIZ)){
+
             quit(messageReceived);
+
             if(hasAnsweredCorrect(answerToQuestion)) {
+
                 question = quiz.getRandomQuestion();
                 sendResponse(chatId, "Correct!");
                 sendResponse(chatId,question.toString());
@@ -58,28 +64,33 @@ public class Bot extends TelegramLongPollingBot {
 
         }
         if(state.equals(State.CHAT_GPT)){
+
             chatGPTResponse(chatId, messageReceived);
             return;
         }
-        // Start to evaluate the messages you received
+
+        // /start to evaluate the messages you received
         // 1. Welcoming text that explains the features in a chat message
         // after a text that starts with hello got send
         if (state.equals(State.DEFAULT) && (messageReceived.toLowerCase().startsWith("hello")
                                         || messageReceived.toLowerCase().startsWith("/start"))) {
+
             helloResponse(chatId);
             sendResponse(chatId,button.getText());
             return;
         }
 
         if(state.equals(State.DEFAULT) && messageReceived.toLowerCase().startsWith("quiz")){
+
             quizStarter(chatId);
             return;
         }
+
         if(messageReceived.toLowerCase().startsWith("chatgpt")){
+
             state = State.CHAT_GPT;
             sendResponse(chatId,"You are now in chatgpt mode");
-        }
-        else //If nothing of the above is done, this will get send.
+        } else //If nothing of the above is done, this will get send.
         {
             sendResponse(chatId,"");
         }
@@ -135,6 +146,8 @@ public class Bot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+
+
     private void sendInlineQuizMenu(long chatId){
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
@@ -176,6 +189,8 @@ public class Bot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+
+
     //Methods mainly for test-purposes, that's why the visibility is default.
 
     State getState(){
