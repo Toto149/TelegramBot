@@ -1,6 +1,8 @@
 package org.example;
 
 import org.example.chat_gpt_datastructures.chat_gpt_datastructures.ChatGPTService;
+import org.example.menu.MainMenu;
+import org.example.menu.QuizMenu;
 import org.example.quiz.Question;
 import org.example.quiz.Quiz;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -66,23 +68,31 @@ public class Bot extends TelegramLongPollingBot {
         boolean isCallForChatGpt = messageReceived.toLowerCase().startsWith("chatgpt") || startUpMessage.equals("chat-gpt");
 
 
-
+        if(state.equals(State.DEFAULT)){
+            sendStartMenu(chatId);
+        }
         quit(messageReceived);
         if(state.equals(State.QUIZ)){
 
 
             if(hasAnsweredCorrect(answerToQuestion)) {
-
+                quiz.increaseScore();
                 question = quiz.getRandomQuestion();
 
-                sendResponse(chatId, "Correct!");
+                sendResponse(chatId, "Correct! Your current score is: " + quiz.getScore());
                 sendResponse(chatId,question.toString());
                 sendInlineQuizMenu(chatId);
                 return;
             }
             else{
-                sendResponse(chatId,"Not correct unfortunately. Please try again or if you dont want to play anymore " +
-                        "quit by sending a message that starts with quit");
+                sendResponse(chatId,"Not correct unfortunately. You have to start again. If you want to try again type 'yes' else type 'no'");
+
+                if(messageReceived.toLowerCase().equals("yes")){
+                    quiz = new Quiz();
+                }
+                if(messageReceived.toLowerCase().equals("no")){
+                    state = State.DEFAULT;
+                }
                 return;
             }
 
@@ -134,42 +144,12 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     private void sendInlineQuizMenu(long chatId){
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Choose an answer: ");
+        QuizMenu quizMenu= new QuizMenu(chatId, question);
 
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
-
-        InlineKeyboardButton btn1 = new InlineKeyboardButton();
-        btn1.setText(" A ");
-        btn1.setCallbackData(question.getOptions().getFirst());
-        rowInline.add(btn1);
-
-        InlineKeyboardButton btn2 = new InlineKeyboardButton();
-        btn2.setText(" B ");
-        btn2.setCallbackData(question.getOptions().get(1));
-        rowInline.add(btn2);
-
-        InlineKeyboardButton btn3 = new InlineKeyboardButton();
-        btn3.setText(" C ");
-        btn3.setCallbackData(question.getOptions().get(2));
-        rowInline2.add(btn3);
-
-        InlineKeyboardButton btn4 = new InlineKeyboardButton();
-        btn4.setText(" D ");
-        btn4.setCallbackData(question.getOptions().get(3));
-        rowInline2.add(btn4);
-
-        rowsInline.add(rowInline);
-        rowsInline.add(rowInline2);
-        markupInline.setKeyboard(rowsInline);
-        message.setReplyMarkup(markupInline);
+        SendMessage quizMenuMessage = quizMenu.getSendQuizMenu();
 
         try{
-            execute(message);
+            execute(quizMenuMessage);
         }catch (TelegramApiException e){
             e.printStackTrace();
         }
@@ -183,7 +163,8 @@ public class Bot extends TelegramLongPollingBot {
                         every following inputs will be send to chatgpt.
                     2. If you send a message starting with 'quiz' you will get into the quiz-mode and
                         a question will appear directly after you send the message. If you answer it successfully
-                        you will get another question until you leave the mode.
+                        you will get another question until you leave the mode. After every 5 questions answered the questions
+                        get more difficult. Question 11 onwards the questions are always on the hardest difficulty, specified by the API.
                         To leave any mode just type a message starting with 'quit'
                    """ );
         sendStartMenu(chatId);
@@ -191,12 +172,15 @@ public class Bot extends TelegramLongPollingBot {
 
     void chatGPTResponse(long chatId, String messageReceived){
         if(messageReceived == null) return;
-        quit(messageReceived);
+
+        quit(messageReceived); //Checks if a quit message was received and quits if true
+
         ChatGPTService service = new ChatGPTService();
         sendResponse(chatId,service.postPrompt(messageReceived));
     }
     void quit(String messageReceived){
         if(messageReceived == null) return;
+
         if(!messageReceived.toLowerCase().startsWith("quit")) return;
         this.state = State.DEFAULT;
     }
@@ -214,30 +198,8 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     private void sendStartMenu(long chatId){
-
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Choose an option: ");
-
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
-
-        InlineKeyboardButton btn1 = new InlineKeyboardButton();
-        btn1.setText("Quiz");
-        btn1.setCallbackData("quiz");
-        rowInline.add(btn1);
-
-        InlineKeyboardButton btn2 = new InlineKeyboardButton();
-        btn2.setText("Chat-Gpt");
-        btn2.setCallbackData("chat-gpt");
-        rowInline2.add(btn2);
-
-        rowsInline.add(rowInline);
-        rowsInline.add(rowInline2);
-        markupInline.setKeyboard(rowsInline);
-        message.setReplyMarkup(markupInline);
+        MainMenu menu = new MainMenu(chatId,List.of("Quiz","ChatGpt"));
+        SendMessage message = menu.getSendMenu();
 
         try{
             execute(message);
