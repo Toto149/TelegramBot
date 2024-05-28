@@ -1,7 +1,6 @@
 package org.example.quiz;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Question {
     private String category;
@@ -17,9 +16,17 @@ public class Question {
     }
 
     public String toString() {
-        String opt = this.options.stream().collect(Collectors.joining("\n"));
-        return this.category + "\n" + this.text + "\n" + opt;
+        StringBuilder optionsString = new StringBuilder("");
+        for(int i=0; i<options.size(); i++){
+            optionsString.append(Character.valueOf((char)((char) 65+i)))
+                    .append( ") " )
+                    .append(options.get(i))
+                    .append("\n");
+        }
+        return this.text + "\n\n"
+                            + optionsString.toString();
     }
+
     public String getSolution(){
         return this.solution;
     }
@@ -27,4 +34,5 @@ public class Question {
     public List<String> getOptions(){
         return options;
     }
+
 }
