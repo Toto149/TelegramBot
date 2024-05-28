@@ -152,28 +152,25 @@ public class Bot extends TelegramLongPollingBot {
 
        sendResponse(chatId, "Glückwunsch du bist bei "+ quiz.getMoneyWon() + "! Auf zur nächsten Frage!");
        chatGPTResponse(chatId, "Versetze dich in der Rolle von Günther Jauch als Moderator der Sendung \"Wer Wird Millionär\" und mache eine der für ihn typische Bemerkungen" +
-               "zu der folgenden Frage und der in diesem Fall korrekten Antwort des Kandidaten. " + "Frage :" + previousQuestionText + " Antwort des Kandidaten " + answerToQuestion);
+               "zu der folgenden Frage und der Kandidat hat die korrekte Antwort gegeben. Bitte in seinem typischen Stil einen Kommentar geben " + "Frage :" + previousQuestionText + " Antwort des Kandidaten " + answerToQuestion + " erwähne auch den aktuellen Stand: (e.g. sie sind bei xx€) " + quiz.getMoneyWon());
        sendResponse(chatId,question.toString());
        sendInlineQuizMenu(chatId);
    }
 
    private void onWrongAnswer(long chatId, String answerToQuestion){
        if (quiz.getScore() > 10) {
-           sendResponse(chatId, answerToQuestion  + " ist leider nicht die korrekte Antwort, aber du bist immerhin bei 16.000€" +
-                   "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat" );
            chatGPTResponse(chatId,"Versetze dich in der Rolle von Günther Jauch als Moderator der Sendung \"Wer Wird Millionär\" und mache eine der für ihn typische Bemerkungen" +
                    "das der Kandidat eine falsche Antwort gab und gebe eine Abmoderation für den Kandidaten. Der Kandidat hat 16.000€ eingespielt");
+           sendResponse(chatId, "Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat" );
        } else {
            if (quiz.getScore() > 5) {
-               sendResponse(chatId, answerToQuestion  +" ist leider nicht die richtige Antwort! Dein Gewinn liegt damit bei 500€ " +
-                       "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat");
                chatGPTResponse(chatId,"Versetze dich in der Rolle von Günther Jauch als Moderator der Sendung \"Wer Wird Millionär\" und mache eine der für ihn typische Bemerkungen" +
                        "das der Kandidat eine falsche Antwort gab und gebe eine Abmoderation für den Kandidaten. Der Kandidat hat 500€ eingespielt");
+               sendResponse(chatId, "Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat" );
            } else {
-               sendResponse(chatId, answerToQuestion  +" ist leider nicht die richtige Antwort. Leider kein Gewinn. " +
-                       "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat");
                chatGPTResponse(chatId,"Versetze dich in der Rolle von Günther Jauch als Moderator der Sendung \"Wer Wird Millionär\" und mache eine der für ihn typische Bemerkungen" +
                        "das der Kandidat eine falsche Antwort gab und gebe eine Abmoderation für den Kandidaten. Der Kandidat ist bei einen der ersten 5 Fragen gescheitert");
+               sendResponse(chatId, "Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat" );
            }
        }
    }
