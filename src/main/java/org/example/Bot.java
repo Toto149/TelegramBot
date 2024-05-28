@@ -1,19 +1,19 @@
 package org.example;
 
+
 import org.example.chat_gpt_datastructures.chat_gpt_datastructures.ChatGPTService;
+
 import org.example.menu.MainMenu;
 import org.example.menu.QuizMenu;
+
 import org.example.quiz.Question;
 import org.example.quiz.Quiz;
+
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -31,22 +31,21 @@ public class Bot extends TelegramLongPollingBot {
 
         long chatId = 0;
 
+        //Different messages for different purposes.
+
         String answerToQuestion = "";
-
-        String messageReceived = "";
-
-        String startUpMessage = "";
+        String textMessage = "";
+        String mainMenuChoice = "";
 
         boolean hasChosenMenuOptions = update.hasCallbackQuery() && (update.getCallbackQuery().getData().equals("chat-gpt")
-                                                                 || update.getCallbackQuery().getData().equals("quiz"));
+                                        || update.getCallbackQuery().getData().equals("quiz"));
         boolean isTextMessage = update.hasMessage() && update.getMessage().hasText();
-
         boolean isAnswerToQuiz = update.hasCallbackQuery() && state.equals(State.QUIZ);
 
         if(hasChosenMenuOptions){
 
             chatId = update.getCallbackQuery().getMessage().getChatId();
-            startUpMessage = update.getCallbackQuery().getData();
+            mainMenuChoice = update.getCallbackQuery().getData();
         }
         if(isAnswerToQuiz){
 
@@ -57,41 +56,48 @@ public class Bot extends TelegramLongPollingBot {
         if(isTextMessage) {
 
             chatId = update.getMessage().getChatId();
-            messageReceived = update.getMessage().getText();
+            textMessage = update.getMessage().getText();
         }
 
-        boolean isCallForMainMenu =  (messageReceived.toLowerCase().startsWith("hello")
-                || messageReceived.toLowerCase().startsWith("/start"));
+        boolean isCallForMainMenu =  (textMessage.toLowerCase().startsWith("hello")
+                                        || textMessage.toLowerCase().startsWith("/start"));
 
-        boolean isCallForQuiz = messageReceived.toLowerCase().startsWith("quiz") || startUpMessage.equals("quiz");
+        boolean isCallForQuiz = textMessage.toLowerCase().startsWith("quiz") || mainMenuChoice.equals("quiz");
 
-        boolean isCallForChatGpt = messageReceived.toLowerCase().startsWith("chatgpt") || startUpMessage.equals("chat-gpt");
+        boolean isCallForChatGpt = textMessage.toLowerCase().startsWith("chatgpt") || mainMenuChoice.equals("chat-gpt");
 
 
-        if(state.equals(State.DEFAULT)){
-            sendStartMenu(chatId);
-        }
-        quit(messageReceived);
+
+
+        quit(textMessage);
+
         if(state.equals(State.QUIZ)){
-
 
             if(hasAnsweredCorrect(answerToQuestion)) {
                 quiz.increaseScore();
+                String previousQuestionText = question.toString();
                 question = quiz.getRandomQuestion();
 
-                sendResponse(chatId, "Correct! Your current score is: " + quiz.getScore());
+
+                sendResponse(chatId, "Glückwunsch du bist bei "+ quiz.getMoneyWon() + "! Auf zur nächsten Frage!");
+                chatGPTResponse(chatId, "Versetze dich in Günther Jauch als Moderator von Wer Wird Millionär und mache eine für ihn typische Bemerkung" +
+                        "zu der folgenden Frage und Antwort des Kandidaten. " + "Frage :" + previousQuestionText + " Antwort des Kandidaten " + answerToQuestion);
                 sendResponse(chatId,question.toString());
                 sendInlineQuizMenu(chatId);
                 return;
             }
             else{
-                sendResponse(chatId,"Not correct unfortunately. You have to start again. If you want to try again type 'yes' else type 'no'");
-
-                if(messageReceived.toLowerCase().equals("yes")){
-                    quiz = new Quiz();
-                }
-                if(messageReceived.toLowerCase().equals("no")){
-                    state = State.DEFAULT;
+                if (quiz.getScore() > 10) {
+                    sendResponse(chatId, answerToQuestion  + " ist leider nicht die korrekte Antwort, aber du bist immerhin bei " + quiz.getMoneyWon() +
+                    "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat" );
+                } else {
+                    if (quiz.getScore() > 5) {
+                        sendResponse(chatId, answerToQuestion  +" ist leider nicht die richtige Antwort! Der Gewinn liegt damit bei " + quiz.getMoneyWon() +
+                                "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat");
+                    } else {
+                        sendResponse(chatId, answerToQuestion  +" ist leider nicht die richtige Antwort. Leider kein Gewinn. " +
+                                "\n Wenn du das Quiz beenden möchtest tippe 'quit' in den Chat");
+                    }
                 }
                 return;
             }
@@ -99,7 +105,7 @@ public class Bot extends TelegramLongPollingBot {
         }
         if(state.equals(State.CHAT_GPT)){
 
-            chatGPTResponse(chatId, messageReceived);
+            chatGPTResponse(chatId, textMessage);
             return;
         }
 
@@ -123,7 +129,11 @@ public class Bot extends TelegramLongPollingBot {
 
             state = State.CHAT_GPT;
             sendResponse(chatId,"You are now in chatgpt mode");
-        } else //If nothing of the above is done, this will get send.
+        }
+        if(state.equals(State.DEFAULT)){
+            sendStartMenu(chatId);
+        }
+        else //If nothing of the above is done, this will get send.
         {
             sendResponse(chatId,"Write 'hello' or '/start' to open the main-menu");
         }
@@ -137,7 +147,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
 
-    void quizStarter(long chatId){
+    private void quizStarter(long chatId){
         state = State.QUIZ;
         sendResponse(chatId, question.toString());
         sendInlineQuizMenu(chatId);
@@ -155,7 +165,7 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    void helloResponse(long chatId){
+   private void helloResponse(long chatId){
         sendResponse(chatId, """
                     0. You are currently in default mode, apart from messages that start with hello,
                         only the mentioned keyword in the other bullet-points will have an effect on the bot.
@@ -170,7 +180,7 @@ public class Bot extends TelegramLongPollingBot {
         sendStartMenu(chatId);
     }
 
-    void chatGPTResponse(long chatId, String messageReceived){
+   private void chatGPTResponse(long chatId, String messageReceived){
         if(messageReceived == null) return;
 
         quit(messageReceived); //Checks if a quit message was received and quits if true
@@ -178,6 +188,7 @@ public class Bot extends TelegramLongPollingBot {
         ChatGPTService service = new ChatGPTService();
         sendResponse(chatId,service.postPrompt(messageReceived));
     }
+
     void quit(String messageReceived){
         if(messageReceived == null) return;
 
@@ -208,20 +219,17 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
+    private void sendQuizLoseMenu(long chatId){
+        MainMenu menu = new MainMenu(chatId, List.of("yes","no"));
+        SendMessage message = menu.getSendMenu();
+    }
+
 
 
     //Methods mainly for test-purposes, that's why the visibility is default.
 
     State getState(){
         return this.state;
-    }
-
-    Quiz getQuiz(){
-        return this.quiz;
-    }
-
-    Question getQuestion(){
-        return this.question;
     }
 
     void setState(State state){
