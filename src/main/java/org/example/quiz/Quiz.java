@@ -1,6 +1,7 @@
 package org.example.quiz;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -43,5 +44,31 @@ public class Quiz {
 
     public int getScore(){
         return score;
+    }
+
+    public String getMoneyWon(){
+        HashMap<Integer,String> scoreToMoney = new HashMap<>();
+        scoreToMoney.put(1,"50€");
+        scoreToMoney.put(2,"100€");
+        scoreToMoney.put(3,"200€");
+        scoreToMoney.put(4,"300€");
+        scoreToMoney.put(5,"500€");
+        scoreToMoney.put(6,"1.000€");
+        scoreToMoney.put(7,"2.000€");
+        scoreToMoney.put(8,"4.000€");
+        scoreToMoney.put(9,"8.000€");
+        scoreToMoney.put(10,"16.000€");
+        scoreToMoney.put(11,"32.000€");
+        scoreToMoney.put(12,"64.000€");
+        scoreToMoney.put(13,"125.000€");
+        scoreToMoney.put(14,"512.000€");
+        scoreToMoney.put(15,"1.000.000€");
+
+        if(score<16) {
+            return scoreToMoney.get(this.score);
+        } else {
+            int result =  1_000_000 * (int) Math.pow(2,score-15);
+            return String.valueOf(result) +"€";
+        }
     }
 }
